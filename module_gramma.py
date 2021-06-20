@@ -1,138 +1,19 @@
 # -*- coding: utf-8 -*-
 # cocos2dx格式lua转换成cocos2dx格式js
+# 语法模块
 # by 丁豪 2020-03-20
+
 import sys, shutil, os, string, platform
 import re
-# # 代码模块
-# def module_code(jsline):
 
-# # 注释模块
-# def module_comment(luaf,jsf):
-#     iscomment = 0 # 0非注释模块 1行注释 2自定义注释
-#     for line in luaf:
-#         jsline = ''
-#         if iscomment == 1:
-#             # 单行注释下 换行结束注释状态
-#             iscomment = 0
-#         for echar in iter(line):
-#             # 遍历每个字符
-#             jsline += echar
-#             if iscomment == 0:
-#                 if jsline[-2:] == '--':
-#                     #切换到单行注释状态
-#                     iscomment = 1
-#                     jsline = jsline[:-2]+'//'
-#                 else:
-#                     module_code(jsline)
-#             elif iscomment == 1:
-#                 if jsline[-4:] == '//[[':
-#                     #切换到自定义注释状态
-#                     iscomment = 2
-#                     jsline = jsline[:-4]+'/*'
-#             elif iscomment == 2:
-#                 if jsline[-2:] == ']]':
-#                     #自定义注释状态下 遇]]结束注释状态
-#                     iscomment = 0
-#                     jsline = jsline[:-2]+'*/'
-
-#         jsf.write(jsline)
-
-# 测试用代码
-def module_test(para, para1):
-    # a = ('apple', 'banana', 'cherry')
-    # b = "Hello World"
-    # c = 55
-
-    # x = type(a)
-    # y = type(b)
-    # z = type(c)
-
-    # para["a"] = 2
-    # para["b"] = 3
-    # para1 = 5
-
-    # def enclosing_test():
-    #     print(a)
-    #     print(para1)
-    #     return
-
-    # enclosing_test()
-
-    # strtmp = ""
-    # print(len(strtmp))
-    # return
-    # content = ''
-    # for line in luaf:
-    #     for echar in iter(line):
-    #         # 遍历每个字符
-    #         content += echar
-
-    # jsf.write(content)
-    # f = open('xxtea.tmp', 'rb')
-    return
+from module_common import getCharSafe
+from module_constants import TokenLua, TokenJs
 
 gramma_Index = 0
 
 gramma_FuncsInfo = {}
 gramma_LastFunc_TKID = ""
 gramma_LocalVars = []
-
-TokenLua = {
-    "TokenCommentAll"          : "--[[",
-    "TokenCommentAllEnd"       : "]]",
-    "TokenCommentLine"         : "--",
-    "TokenAnd"                 : "and",
-    "TokenDo"                  : "do",
-    "TokenElse"                : "else",
-    "TokenElseif"              : "elseif",
-    "TokenEnd"                 : "end",
-    "TokenFalse"               : "false",
-    "TokenIf"                  : "if",
-    "TokenLocal"               : "local",
-    "TokenNil"                 : "nil",
-    "TokenNot"                 : "not",
-    "TokenOr"                  : "or",
-    "TokenThen"                : "then",
-    "TokenTrue"                : "true",
-    "TokenWhile"               : "while",
-    "TokenFor"                 : "for",
-    "TokenBreak"               : "break",
-    "TokenContinue"            : "continue",
-    "TokenFunction"            : "function",
-    "TokenReturn"              : "return",
-    "TokenIn"                  : "in",
-    # "TokenID"                  : "<id>",
-    # "TokenString"              : "<string>",
-    # "TokenNumber"              : "<number>",
-    "TokenAdd"                 : "+",
-    "TokenSub"                 : "-",
-    "TokenMul"                 : "*",
-    "TokenDiv"                 : "/",
-    "TokenPercent"             : "%",
-    # "TokenLen"                 : "#",
-    "TokenLeftParen"           : "(",
-    "TokenRightParen"          : ")",
-    "TokenLeftSquare"          : "[",
-    "TokenRightSquare"         : "]",
-    "TokenLeftBrace"           : "{",
-    "TokenRightBrace"          : "}",
-    "TokenAssign"              : "=",
-    "TokenColon"               : ":",
-    "TokenSemicolon"           : ";",
-    "TokenComma"               : ",",
-    "TokenEqual"               : "==",
-    "TokenNotEqual"            : "~=",
-    "TokenLess"                : "<",
-    "TokenLessEqual"           : "<=",
-    "TokenGreater"             : ">",
-    "TokenGreaterEqual"        : ">=",
-    "TokenDot"                 : ".",
-    "TokenDanYin"              : "'",
-    "TokenShuangYin"           : "\"",
-    "TokenConcat"              : "..",
-    "TokenConcat1"             : "...",
-    "TokenEOF"                 : "<eof>"
-}
 
 UnaryOps = {
     "TokenNot" : 5,
@@ -153,270 +34,6 @@ BinOps = {
     "TokenDiv" : 4,
     "TokenPercent" : 4
 }
-
-TokenJs = {
-    "TokenCommentAll"          : "/*",
-    "TokenCommentAllEnd"       : "*/",
-    "TokenCommentLine"         : "//",
-    "TokenAnd"                 : "&&",
-    "TokenDo"                  : "){",
-    "TokenElse"                : "}else{",
-    "TokenElseif"              : "}else if (",
-    "TokenEnd"                 : "}",
-    "TokenFalse"               : "false",
-    "TokenIf"                  : "if (",
-    "TokenLocal"               : "let",
-    "TokenNil"                 : "null",
-    "TokenNot"                 : "!",
-    "TokenOr"                  : "||",
-    "TokenThen"                : "){",
-    "TokenTrue"                : "true",
-    "TokenWhile"               : "while (",
-    "TokenFor"                 : "for (",
-    "TokenBreak"               : "break",
-    "TokenContinue"            : "continue",
-    "TokenFunction"            : "function",
-    "TokenReturn"              : "return",
-    "TokenIn"                  : "in",
-    # "TokenID"                  : "<id>",
-    # "TokenString"              : "<string>",
-    # "TokenNumber"              : "<number>",
-    "TokenAdd"                 : "+",
-    "TokenSub"                 : "-",
-    "TokenMul"                 : "*",
-    "TokenDiv"                 : "/",
-    "TokenPercent"             : "%",
-    # "TokenLen"                 : "#",
-    "TokenLeftParen"           : "(",
-    "TokenRightParen"          : ")",
-    "TokenLeftSquare"          : "[",
-    "TokenRightSquare"         : "]",
-    "TokenLeftBrace"           : "{",
-    "TokenRightBrace"          : "}",
-    "TokenAssign"              : "=",
-    "TokenColon"               : ":",
-    "TokenSemicolon"           : ";",
-    "TokenComma"               : ",",
-    "TokenEqual"               : "==",
-    "TokenNotEqual"            : "!=",
-    "TokenLess"                : "<",
-    "TokenLessEqual"           : "<=",
-    "TokenGreater"             : ">",
-    "TokenGreaterEqual"        : ">=",
-    "TokenDot"                 : ".",
-    "TokenDanYin"              : "'",
-    "TokenShuangYin"           : "\"",
-    "TokenConcat"              : "+",
-    "TokenConcat1"             : "...",
-    "TokenEOF"                 : "<eof>"
-}
-
-# 通用函数
-def getCharSafe(context,index):
-    if index >= len(context):
-        return None
-    else:
-        return context[index]
-
-# 预处理
-def module_preprocess(luaf):
-    luaf = re.sub(r'require[ ]*(\"[_a-zA-Z0-9\. ]*\")','require(\g<1>)',luaf)
-    luaf = re.sub(r'require[ ]*(\'[_a-zA-Z0-9\. ]*\')','require(\g<1>)',luaf)
-    return luaf
-
-# 词法模块
-def module_token(luaf,jsf):
-    content = []
-    lineIndex = 1
-    current = 0
-    luacode = luaf.read()
-    luacode = module_preprocess(luacode)
-    while current < len(luacode):
-        curStr = getCharSafe(luacode,current)
-        nextStr = getCharSafe(luacode,current+1)
-        if curStr == ' ' or curStr == '\t' or curStr == '\v' or curStr == '\f':
-            current += 1
-            tokenItem = {"value":curStr,"line":lineIndex,"type":"TokenSkip"}
-            content.append(tokenItem)
-        elif curStr == '\r' or curStr == '\n':
-            current += 1
-            lineIndex += 1
-            tokenItem = {"value":curStr,"line":lineIndex,"type":"TokenEnter"}
-            content.append(tokenItem)
-        elif curStr >= '0' and curStr <= '9':
-            numberStr = curStr
-            current += 1
-            if curStr == '0' and (nextStr == 'x' or nextStr == 'X'):
-                numberStr += nextStr
-                current += 1
-                while current < len(luacode):
-                    if luacode[current] >= '0' and luacode[current] <= '9':
-                        numberStr += luacode[current]
-                        current += 1
-                    elif luacode[current] >= 'a' and luacode[current] <= 'f':
-                        numberStr += luacode[current]
-                        current += 1
-                    elif luacode[current] >= 'A' and luacode[current] <= 'F':
-                        numberStr += luacode[current]
-                        current += 1
-                    else:
-                        break
-            else:
-                hasDot = False
-                while current < len(luacode):
-                    if luacode[current] >= '0' and luacode[current] <= '9':
-                        numberStr += luacode[current]
-                        current += 1
-                    elif luacode[current] == '.' and hasDot == False:
-                        hasDot = True
-                        numberStr += luacode[current]
-                        current += 1
-                    else:
-                        break
-            tokenItem = {"value":numberStr,"line":lineIndex,"type":"TokenNumber"}
-            content.append(tokenItem)
-        elif isSingleOperator(curStr) and not isSingleOperator(nextStr) :#单字符运算符
-            current += 1
-            tokenItem = {"value":curStr,"line":lineIndex,"type":getTokenType(curStr)}
-            content.append(tokenItem)
-        elif isDoubleOperator(curStr+nextStr):#双字符运算符
-            nextStr1 = getCharSafe(luacode,current+2)
-            if isTripleOperator(curStr+nextStr+nextStr1):#三字符运算符
-                current += 3
-                tokenItem = {"value":curStr+nextStr+nextStr1,"line":lineIndex,"type":getTokenType(curStr+nextStr+nextStr1)}
-                content.append(tokenItem)
-            else:
-                current += 2
-                tokenItem = {"value":curStr+nextStr,"line":lineIndex,"type":getTokenType(curStr+nextStr)}
-                content.append(tokenItem)
-        elif curStr == '"' or curStr == '\'':
-            current += 1
-            strStr = ""
-            tokenItem = {"value":curStr,"line":lineIndex,"type":getTokenType(curStr)}
-            content.append(tokenItem)
-            while current < len(luacode):
-                curstrstr = luacode[current]
-                nextstrstr = getCharSafe(luacode,current+1)
-                if curstrstr == curStr:
-                    current += 1
-                    break
-                elif curstrstr == '\\' and nextstrstr == curStr:
-                    current += 2
-                    strStr += '\\' + curStr
-                else:
-                    current += 1
-                    strStr += curstrstr
-            tokenItem = {"value":strStr,"line":lineIndex,"type":"TokenString"}
-            content.append(tokenItem)
-            tokenItem = {"value":curStr,"line":lineIndex,"type":getTokenType(curStr)}
-            content.append(tokenItem)
-        elif curStr == '-':
-            nextStr1 = getCharSafe(luacode,current+2)
-            nextStr2 = getCharSafe(luacode,current+3)
-            if nextStr == "-" and nextStr2 != "[":
-                tokenItem = {"value":"--","line":lineIndex,"type":"TokenCommentLine"}
-                content.append(tokenItem)
-                current += 2
-                commentline = ""
-                while current < len(luacode):
-                    commentline += luacode[current]
-                    if luacode[current] != '\n':
-                        current += 1
-                    else:
-                        current += 1
-                        lineIndex += 1
-                        break
-                tokenItem = {"value":commentline,"line":lineIndex,"type":"TokenCommentBlock"}
-                content.append(tokenItem)
-            elif nextStr == "-" and nextStr1 == "[" and nextStr2 == "[":
-                tokenItem = {"value":"--[[","line":lineIndex,"type":"TokenCommentAll"}
-                content.append(tokenItem)
-                current += 4
-                commentline = ""
-                while current < len(luacode):
-                    commentstr = luacode[current]
-                    commentstr1 = getCharSafe(luacode,current+1)
-                    if commentstr == "]" and commentstr1 == "]":
-                        current += 2
-                        break
-                    elif commentstr == '\n':
-                        current += 1
-                        lineIndex += 1
-                        commentline += commentstr
-                    else:
-                        commentline += commentstr
-                        current += 1
-                tokenItem = {"value":commentline,"line":lineIndex,"type":"TokenCommentBlock"}
-                content.append(tokenItem)
-                tokenItem = {"value":"]]","line":lineIndex,"type":"TokenCommentAllEnd"}
-                content.append(tokenItem)
-        else:
-            current += 1
-            idStr = curStr
-            while current < len(luacode):
-                curId = luacode[current]
-                if curId.isalnum() or curId == '_':
-                    current += 1
-                    idStr += curId
-                else:
-                    break
-            tokenItem = {"value":idStr,"line":lineIndex,"type":getTokenType(idStr)}
-            content.append(tokenItem)
-
-    for num in range(len(content)):
-        value = content[num]
-        if value["type"] == "TokenID" and value["value"] == "var":
-            content[num]["value"] = "vari"
-    return content
-
-def isSingleOperator(code):
-    if code == '+' or code == '-' or code == '*' or code == '/' or code == '#' or code == '(' or code == ')' or code == '[' or code == ']' or code == '{' or code == '}' or code == ';' or code == ','  or code == '=' or code == '<' or code == '>' or code == '.' or code == ':':
-        return True
-    else:
-        return False
-
-def isDoubleOperator(code):
-    if code == '==' or code == '~=' or code == '<=' or code == '>=' or code == '..':
-        return True
-    else:
-        return False
-
-def isTripleOperator(code):
-    if code == '...':
-        return True
-    else:
-        return False
-
-def getTokenType(code):
-    for key,value in TokenLua.items():
-        if value == code:
-            return key
-    if is_number(code):
-        return "TokenNumber"
-    return "TokenID"
-
-def is_number(s):
-    if s.count(".")==1:   #小数的判断
-        if s[0]=="-":
-            s=s[1:]
-        if s[0]==".":
-            return False
-        s=s.replace(".","")
-        for i in s:
-            if i not in "0123456789":
-                return False
-        else:                #这个else与for对应的
-            return True
-    elif s.count(".")==0:   #整数的判断
-        if s[0]=="-":
-            s=s[1:]
-        for i in s:
-            if i not in "0123456789":
-                return False
-        else:
-            return True
-    else:
-        return False
 
 # 语法模块
 def module_gramma(content):
@@ -567,7 +184,7 @@ def var_or_func(content, v_desc):
     ispound = False
     if item["value"] == "#":
         ispound = True
-        check_translate(content,"TokenID","TokenID","lua_pound");
+        check_translate(content,"TokenID","TokenID","lua_pound")
         content.insert(gramma_Index+1,{"value":TokenJs["TokenLeftParen"],"line":item["line"],"type":"TokenLeftParen"})
         gramma_Index += 1
         next(content)
@@ -1571,6 +1188,11 @@ def isMeaninglessToken(item):
         return True
     return False
 
+def isKeyWords(item):
+    if "type" in item and item["type"] in TokenJs:
+        return True
+    else:
+        return False
 # def getItemSafe(index, content):
 #     item = {}
 #     if index in content:
@@ -1594,55 +1216,3 @@ def isMeaninglessToken(item):
 #         return False
 #     else:
 #         return True
-
-# 翻译模块
-def module_translate(content,jsf):
-    context = ""
-
-    for item in content:
-        context += str(item["value"])
-
-    context = re.sub(r'function ([_a-zA-Z0-9]*)\.([_a-zA-Z0-9\.]*)','\g<1>.\g<2> = function',context)
-
-    jsf.write(context)
-    return
-
-def isKeyWords(item):
-    if "type" in item and item["type"] in TokenJs:
-        return True
-    else:
-        return False
-
-# lua翻译成js
-def luatojs(folder,luafile):
-    print('start translate:', luafile)
-    jsfile = luafile[:-4]+'.js'
-    classname = luafile[:-4]
-    jsf = open(os.path.join(folder,jsfile),'w',-1,encoding='utf-8')
-    luaf = open(os.path.join(folder,luafile),'r',-1,encoding='utf-8')
-    content = module_token(luaf,jsf)
-    content = module_gramma(content)
-    module_translate(content,jsf)
-    luaf.close()
-    jsf.flush()
-    jsf.close()
-
-def main(argv):
-    # para = {"a":1}
-    # a = 1
-    # module_test(para, a)
-    project_tool_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    project_root_dir = os.path.abspath(os.path.join(project_tool_dir, os.path.pardir))
-    print('cur_dir', project_tool_dir)
-    print('cur_root_dir', project_root_dir)
-    # 遍历文件夹以及子文件夹 找到lua文件
-    for dirpath, dirnames, filenames in os.walk(project_tool_dir):
-        for filename in filenames:
-            if filename.endswith(".lua"):
-                # f = open(filename, 'rb')
-                # data = f.read()
-                luatojs(dirpath,filename)
-
-# -------------- main --------------
-if __name__ == '__main__':
-    main(sys.argv)
