@@ -17,6 +17,7 @@ def module_token(luaf,jsf):
     current = 0
     luacode = luaf.read()
     luacode = module_preprocess(luacode)
+
     while current < len(luacode):
         curStr = getCharSafe(luacode,current)
         nextStr = getCharSafe(luacode,current+1)
@@ -86,9 +87,9 @@ def module_token(luaf,jsf):
                 if curstrstr == curStr:
                     current += 1
                     break
-                elif curstrstr == '\\' and nextstrstr == curStr:
-                    current += 2
-                    strStr += '\\' + curStr
+                # elif curstrstr == '\\' and nextstrstr == curStr:
+                #     current += 2
+                #     strStr += '\\' + curStr
                 else:
                     current += 1
                     strStr += curstrstr
@@ -99,22 +100,7 @@ def module_token(luaf,jsf):
         elif curStr == '-':
             nextStr1 = getCharSafe(luacode,current+2)
             nextStr2 = getCharSafe(luacode,current+3)
-            if nextStr == "-" and nextStr2 != "[":
-                tokenItem = {"value":"--","line":lineIndex,"type":"TokenCommentLine"}
-                content.append(tokenItem)
-                current += 2
-                commentline = ""
-                while current < len(luacode):
-                    commentline += luacode[current]
-                    if luacode[current] != '\n':
-                        current += 1
-                    else:
-                        current += 1
-                        lineIndex += 1
-                        break
-                tokenItem = {"value":commentline,"line":lineIndex,"type":"TokenCommentBlock"}
-                content.append(tokenItem)
-            elif nextStr == "-" and nextStr1 == "[" and nextStr2 == "[":
+            if nextStr == "-" and nextStr1 == "[" and nextStr2 == "[":
                 tokenItem = {"value":"--[[","line":lineIndex,"type":"TokenCommentAll"}
                 content.append(tokenItem)
                 current += 4
@@ -136,6 +122,25 @@ def module_token(luaf,jsf):
                 content.append(tokenItem)
                 tokenItem = {"value":"]]","line":lineIndex,"type":"TokenCommentAllEnd"}
                 content.append(tokenItem)
+            elif nextStr == "-":
+                tokenItem = {"value":"--","line":lineIndex,"type":"TokenCommentLine"}
+                content.append(tokenItem)
+                current += 2
+                commentline = ""
+                while current < len(luacode):
+                    commentline += luacode[current]
+                    if luacode[current] != '\n':
+                        current += 1
+                    else:
+                        current += 1
+                        lineIndex += 1
+                        break
+                tokenItem = {"value":commentline,"line":lineIndex,"type":"TokenCommentBlock"}
+                content.append(tokenItem)
+            else:
+                current += 1
+                tokenItem = {"value":curStr,"line":lineIndex,"type":getTokenType(curStr)}
+                content.append(tokenItem)
         else:
             current += 1
             idStr = curStr
@@ -156,7 +161,7 @@ def module_token(luaf,jsf):
     return content
 
 def isSingleOperator(code):
-    if code == '+' or code == '-' or code == '*' or code == '/' or code == '#' or code == '(' or code == ')' or code == '[' or code == ']' or code == '{' or code == '}' or code == ';' or code == ','  or code == '=' or code == '<' or code == '>' or code == '.' or code == ':':
+    if code == '+' or code == '-' or code == '*' or code == '/' or code == '#' or code == '(' or code == ')' or code == '[' or code == ']' or code == '{' or code == '}' or code == ';' or code == ','  or code == '=' or code == '<' or code == '>' or code == '.' or code == ':' or code == '%':
         return True
     else:
         return False

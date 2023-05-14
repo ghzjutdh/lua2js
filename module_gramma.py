@@ -342,6 +342,8 @@ def explist1(content, v_desc):
         endId = lastIndex(content, gramma_Index)
         res["expcontent"].append({"begin":begin,"end":endId})
         res["paracount"] += 1
+        if gramma_Index >= len(content):
+            break
         cur_token = content[gramma_Index]["type"]
     return res
 
@@ -470,6 +472,8 @@ def table_construct(content):
     while cur_token == "TokenComma" or cur_token == "TokenSemicolon":
         if cur_token == "TokenSemicolon":
             check_translate_next(content,"TokenSemicolon","TokenComma",",");
+        if isMeaninglessToken(item):
+            next(content)
         else:
             next(content)
         tableIndex = table_part(content, tableIndex)

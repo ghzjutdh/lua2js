@@ -14,6 +14,7 @@ def module_translate(content,jsf):
         context += str(item["value"])
 
     context = re.sub(r'function ([_a-zA-Z0-9]*)\.([_a-zA-Z0-9\.]*)','\g<1>.\g<2> = function',context)
+    context = re.sub(r'self','this',context)
 
     jsf.write(context)
     return
